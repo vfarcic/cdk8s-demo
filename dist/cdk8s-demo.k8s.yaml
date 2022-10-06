@@ -1,0 +1,43 @@
+apiVersion: ec2.aws.crossplane.io/v1beta1
+kind: VPC
+metadata:
+  name: cdk8s-demo-sql-vpc-c8fdc5fd
+spec:
+  forProvider:
+    cidrBlock: 10.0.0.0/16
+    enableDnsHostNames: true
+    enableDnsSupport: true
+    region: us-east-1
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  labels:
+    db: postgresql
+    provider: sql
+  name: cdk8s-demo-sql-composition-c8331eab
+spec:
+  compositeTypeRef:
+    apiVersion: devopstoolkitseries.com/v1alpha1
+    kind: SQL
+  patchSets:
+    - name: name
+      patches:
+        - fromFieldPath: metadata.labels
+  resources:
+    - base:
+        apiVersion: ec2.aws.crossplane.io/v1beta1
+        kind: VPC
+        metadata:
+          name: cdk8s-demo-sql-vpc-c8fdc5fd
+        spec:
+          forProvider:
+            cidrBlock: 10.0.0.0/16
+            enableDnsHostNames: true
+            enableDnsSupport: true
+            region: us-east-1
+      name: vpc
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+  writeConnectionSecretsToNamespace: crossplane-system
