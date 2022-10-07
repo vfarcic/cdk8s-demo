@@ -2,10 +2,10 @@
 package ec2awscrossplaneio
 
 import (
-	_init_ "example.com/cdk8s-demo/imports/ec2awscrossplaneio/jsii"
+	_init_ "example.com/cdk8s-demo/imports/vpc/ec2awscrossplaneio/jsii"
 	_jsii_ "github.com/aws/jsii-runtime-go/runtime"
 
-	"example.com/cdk8s-demo/imports/ec2awscrossplaneio/internal"
+	"example.com/cdk8s-demo/imports/vpc/ec2awscrossplaneio/internal"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/cdk8s-team/cdk8s-core-go/cdk8s/v2"
 )

@@ -16,18 +16,15 @@ func NewMyChart(scope constructs.Construct, id string, props *MyChartProps) cdk8
 		cprops = props.ChartProps
 	}
 	chart := cdk8s.NewChart(scope, jsii.String(id), &cprops)
-	// NewWebService(chart, jsii.String("hello"), &WebServiceProps{
-	// 	Image:    jsii.String("paulbouwer/hello-kubernetes:1.7"),
-	// 	Replicas: jsii.Number(2),
-	// })
-	// NewWebService(chart, jsii.String("ghost"), &WebServiceProps{
-	// 	Image:         jsii.String("ghost"),
-	// 	ContainerPort: jsii.Number(2368),
-	// })
-	NewComposition(chart, jsii.String("sql"), &CompositionProps{
-		Provider: jsii.String("sql"),
-		DB:       jsii.String("postgresql"),
-	})
+	NewComposition(
+		chart,
+		jsii.String("sql"), &CompositionProps{
+			Provider: jsii.String("sql"),
+			DB:       jsii.String("postgresql"),
+			Kind:     jsii.String("SQL"),
+		},
+		GetAwsResources(),
+	)
 	return chart
 }
 
