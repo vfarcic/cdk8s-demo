@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: sql
+  name: silly-demo-sql-service-c8bff182
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: sql
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: sql
+  name: silly-demo-sql-deployment-c85033da
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sql
+  template:
+    metadata:
+      labels:
+        app: sql
+    spec:
+      containers:
+        - image: vfarcic/silly-demo
+          name: web
+          ports:
+            - containerPort: 8080

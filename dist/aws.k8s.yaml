@@ -1,0 +1,241 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  labels:
+    db: postgresql
+    provider: sql
+  name: aws-sql-composition-c861d82a
+spec:
+  compositeTypeRef:
+    apiVersion: devopstoolkitseries.com/v1alpha1
+    kind: SQL
+  patchSets:
+    - name: name
+      patches:
+        - fromFieldPath: metadata.labels
+  resources:
+    - base:
+        apiVersion: ec2.aws.crossplane.io/v1beta1
+        kind: VPC
+        spec:
+          forProvider:
+            cidrBlock: 10.0.0.0/16
+            enableDnsHostNames: true
+            enableDnsSupport: true
+            region: us-east-1
+      name: vpc
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+    - base:
+        apiVersion: ec2.aws.crossplane.io/v1beta1
+        kind: Subnet
+        spec:
+          forProvider:
+            availabilityZone: us-east-1a
+            cidrBlock: 10.0.0.0/24
+            region: us-east-1
+            vpcIdSelector:
+              matchControllerRef: true
+      name: subnet-a
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+          transforms:
+            - string:
+                fmt: "%s-a"
+              type: string
+        - fromFieldPath: spec.forProvider.availabilityZone
+          toFieldPath: metadata.labels.zone
+    - base:
+        apiVersion: ec2.aws.crossplane.io/v1beta1
+        kind: Subnet
+        spec:
+          forProvider:
+            availabilityZone: us-east-1b
+            cidrBlock: 10.0.1.0/24
+            region: us-east-1
+            vpcIdSelector:
+              matchControllerRef: true
+      name: subnet-b
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+          transforms:
+            - string:
+                fmt: "%s-b"
+              type: string
+        - fromFieldPath: spec.forProvider.availabilityZone
+          toFieldPath: metadata.labels.zone
+    - base:
+        apiVersion: ec2.aws.crossplane.io/v1beta1
+        kind: Subnet
+        spec:
+          forProvider:
+            availabilityZone: us-east-1c
+            cidrBlock: 10.0.2.0/24
+            region: us-east-1
+            vpcIdSelector:
+              matchControllerRef: true
+      name: subnet-c
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+          transforms:
+            - string:
+                fmt: "%s-c"
+              type: string
+        - fromFieldPath: spec.forProvider.availabilityZone
+          toFieldPath: metadata.labels.zone
+    - base:
+        apiVersion: database.aws.crossplane.io/v1beta1
+        kind: DBSubnetGroup
+        spec:
+          forProvider:
+            description: I'm too lazy to write a good description
+            region: us-east-1
+            subnetIdSelector:
+              matchControllerRef: true
+      name: dbsubnetgroup
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+    - base:
+        apiVersion: ec2.aws.crossplane.io/v1beta1
+        kind: InternetGateway
+        spec:
+          forProvider:
+            region: us-east-1
+            vpcIdSelector:
+              matchControllerRef: true
+      name: gateway
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+    - base:
+        apiVersion: ec2.aws.crossplane.io/v1beta1
+        kind: RouteTable
+        spec:
+          forProvider:
+            associations:
+              - subnetIdSelector:
+                  matchControllerRef: true
+                  matchLabels:
+                    zone: us-east-1a
+              - subnetIdSelector:
+                  matchControllerRef: true
+                  matchLabels:
+                    zone: us-east-1b
+              - subnetIdSelector:
+                  matchControllerRef: true
+                  matchLabels:
+                    zone: us-east-1c
+            region: us-east-1
+            routes:
+              - destinationCidrBlock: 0.0.0.0/0
+                gatewayIdSelector:
+                  matchControllerRef: true
+            vpcIdSelector:
+              matchControllerRef: true
+      name: routetable
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+    - base:
+        apiVersion: ec2.aws.crossplane.io/v1beta1
+        kind: SecurityGroup
+        spec:
+          forProvider:
+            description: I'm too lazy to write a good description
+            groupName: PATCHED!
+            ingress:
+              - fromPort: 5432
+                ipProtocol: tcp
+                ipRanges:
+                  - cidrIp: 0.0.0.0/0
+                toPort: 5432
+            region: us-east-1
+            vpcIdSelector:
+              matchControllerRef: true
+      name: securitygroup
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.groupName
+    - base:
+        apiVersion: database.aws.crossplane.io/v1beta1
+        kind: RDSInstance
+        spec:
+          forProvider:
+            allocatedStorage: 200
+            dbInstanceClass: db.m5.large
+            dbSubnetGroupNameSelector:
+              matchControllerRef: true
+            engine: postgres
+            engineVersion: "14.1"
+            masterUsername: masteruser
+            publiclyAccessible: true
+            region: us-east-1
+            skipFinalSnapshotBeforeDeletion: true
+            vpcSecurityGroupIDSelector:
+              matchControllerRef: true
+          writeConnectionSecretToRef:
+            name: PATCHED!
+            namespace: crossplane-system
+      connectionDetails:
+        - fromConnectionSecretKey: username
+        - fromConnectionSecretKey: password
+        - fromConnectionSecretKey: endpoint
+        - fromConnectionSecretKey: port
+      name: rdsinstance
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+        - fromFieldPath: metadata.uid
+          toFieldPath: spec.writeConnectionSecretToRef.name
+          transforms:
+            - string:
+                fmt: "%s-sql"
+              type: string
+        - fromFieldPath: spec.parameters.size
+          toFieldPath: spec.forProvider.dbInstanceClass
+          transforms:
+            - map:
+                large: db.m5.8xlarge
+                medium: db.m5.large
+                small: db.m5.large
+              type: map
+        - fromFieldPath: spec.parameters.version
+          toFieldPath: spec.forProvider.engineVersion
+    - base:
+        apiVersion: postgresql.sql.crossplane.io/v1alpha1
+        kind: ProviderConfig
+        spec:
+          credentials:
+            source: PostgreSQLConnectionSecret
+          sslMode: require
+      name: sql-config
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+        - fromFieldPath: spec.id
+          toFieldPath: spec.credentials.connectionSecretRef.name
+        - fromFieldPath: spec.claimRef.namespace
+          toFieldPath: spec.credentials.connectionSecretRef.namespace
+      readinessChecks:
+        - type: None
+    - base:
+        apiVersion: postgresql.sql.crossplane.io/v1alpha1
+        kind: Database
+        spec:
+          forProvider: {}
+      name: sql-db
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+        - fromFieldPath: spec.id
+          toFieldPath: spec.providerConfigRef.name
+      readinessChecks:
+        - type: None
+  writeConnectionSecretsToNamespace: crossplane-system
