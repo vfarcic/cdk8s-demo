@@ -10,7 +10,9 @@ for CRD in \
     "providerconfigs.postgresql.sql.crossplane.io" \
     "databases.postgresql.sql.crossplane.io"
 do
-    echo "\n---\n" | tee -a crds/crossplane.yaml
+    echo "
+---
+" | tee -a crds/crossplane.yaml
     kubectl get \
         crd $CRD \
         --output yaml \
